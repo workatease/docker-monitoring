@@ -3,6 +3,8 @@ services:
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
     container_name: cadvisor
+    restart: unless-stopped
+    command: -storage_driver=influxdb -storage_driver_db=cadvisor -storage_driver_host=influxsrv:8086 -storage_driver_user=root -storage_driver_password=root
     ports:
     - 8080:8080
     volumes:
@@ -14,16 +16,21 @@ services:
     depends_on:
     - influxsrv
   influxsrv:
-    image: tutum/influxdb:0.13
+    image: influxdb:1.8
     container_name: influxsrv
     ports:
-      - "8083:8083"
       - "8086:8086"
-    expose:
-      - "8090"
-      - "8099"
+      - "8083:8083"
     environment:
-      - PRE_CREATE_DB=cadvisor
+      - INFLUXDB_DB=cadvisor
+      # - INFLUXDB_HTTP_AUTH_ENABLED=true
+      # - INFLUXDB_ADMIN_ENABLED=true
+      # - INFLUXDB_ADMIN_USER=root
+      # - INFLUXDB_ADMIN_PASSWORD=root
+    volumes:
+      - ./influxsrv_data:/var/lib/influxdb
+      - /etc/localtime:/etc/localtime:ro
+# influx -host 127.0.0.1 -port 8086 -username root -password root
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
@@ -39,5 +46,3 @@ services:
       - INFLUXDB_HOST=localhost
       - INFLUXDB_PORT=8086
       - INFLUXDB_NAME=cadvisor
-      - INFLUXDB_USER=root
-      - INFLUXDB_PASS=root    
